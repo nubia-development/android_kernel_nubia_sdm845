@@ -599,6 +599,7 @@ dtb-$(CONFIG_ARCH_SDM429) += sdm429-mtp.dtb \
 
 endif
 
-always		:= $(dtb-y)
+#always		:= $(dtb-y)
+always          := $(NUBIA_DTS_NAME)
 subdir-y	:= $(dts-dirs)
 clean-files	:= *.dtb
