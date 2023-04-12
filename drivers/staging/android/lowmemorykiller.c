@@ -464,7 +464,9 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		return 0;
 
 	other_free = global_page_state(NR_FREE_PAGES) - totalreserve_pages;
-
+    // nubia add
+    // adjust the calculation of other_file
+    /*
 	if (global_node_page_state(NR_SHMEM) + total_swapcache_pages() +
 			global_node_page_state(NR_UNEVICTABLE) <
 			global_node_page_state(NR_FILE_PAGES))
@@ -474,6 +476,16 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 					total_swapcache_pages();
 	else
 		other_file = 0;
+    */
+    if (global_node_page_state(NR_SHMEM) + total_swapcache_pages() + global_node_page_state(NR_UNEVICTABLE) <
+                        global_node_page_state(NR_FILE_PAGES))
+                other_file = global_node_page_state(NR_FILE_PAGES) -
+                                        global_node_page_state(NR_SHMEM) -
+                                        global_node_page_state(NR_UNEVICTABLE) -
+                                        total_swapcache_pages();
+    else
+        other_file = 0;
+    // nubia add end
 
 	tune_lmk_param(&other_free, &other_file, sc);
 
@@ -512,6 +524,14 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 
 		if (tsk->flags & PF_KTHREAD)
 			continue;
+
+        // nubia add
+        // Skip 'D' state but not frozen process. The frozen process can
+        // be killed by 'process frozen function'
+        if ((tsk->state & TASK_UNINTERRUPTIBLE) && (!(tsk->flags & PF_FROZEN))) {
+            continue;
+        }
+        // nubia add end
 
 		/* if task no longer has any memory ignore it */
 		if (test_task_flag(tsk, TIF_MM_RELEASED))
@@ -570,6 +590,7 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		lowmem_print(3, "select '%s' (%d), adj %hd, size %d, to kill\n",
 			     p->comm, p->pid, oom_score_adj, tasksize);
 	}
+
 	if (selected) {
 		long cache_size = other_file * (long)(PAGE_SIZE / 1024);
 		long cache_limit = minfree * (long)(PAGE_SIZE / 1024);
