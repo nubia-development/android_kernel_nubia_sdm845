@@ -51,7 +51,12 @@ config NUBIA_CAMERA_DUAL_CAMERA_IMX519
         NX616 imx519 eeprom dualcamera cal addr is different from imx499
 
 if MSMB_CAMERA
+if !(MACH_NUBIA_SDM845)
 source "drivers/media/platform/msm/camera_v2/Kconfig"
+endif
+if MACH_NUBIA_SDM845
+source "drivers/media/platform/msm/camera_nubia/Kconfig"
+endif
 endif # MSMB_CAMERA
 
 source "drivers/media/platform/msm/vidc_3x/Kconfig"
