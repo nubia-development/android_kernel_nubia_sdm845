@@ -107,49 +107,47 @@ static ssize_t virtual_proximity_store_dev_init(struct device *dev,
 	return count;
 }
 
-static int near_count;
-static int far_count;
+static int near_count, far_count;
+
+static void set_proximity_values(int near, int far) {
+    near_count = near;
+    far_count = far;
+}
+
 static ssize_t virtual_proximity_store_value(struct device *dev,
-				struct device_attribute *attr, const char *buf, size_t count)
+    struct device_attribute *attr, const char *buf, size_t count)
 {
     struct virtual_proximity_data *data = dev_get_drvdata(dev);
     u8 value;
-    value = simple_strtoul(buf, NULL, 10 );
-    
-    //printk("ultrasonic proximity value = %d\n", value);
-    if(value == 3 )
-    {
-        near_count ++;
-        far_count = 0;
+    value = simple_strtoul(buf, NULL, 10);
+
+    switch (value) {
+        case 3:
+            set_proximity_values(1, 0);
+            break;
+        case 10:
+            set_proximity_values(0, 1);
+            break;
+        default:
+            set_proximity_values(0, 0);
+            break;
     }
-    else if(value == 10 )
-    {
-        far_count ++;
-        near_count = 0;
-    }
+
     SENSOR_LOG_INFO("ultrasonic value = %d, near_count=%d, far_count=%d\n", value, near_count, far_count);
-    if(near_count == 2)
-    {
+
+    if (near_count && !far_count) {
         near_count = 0;
         data->ps_status = 3;
         virtual_proximity_report_event(data);
     }
-    if(far_count == 2)
-    {
+
+    if (far_count && !near_count) {
         far_count = 0;
         data->ps_status = 10;
         virtual_proximity_report_event(data);
     }
-    /*
-	if(value != 3 && value != 10)
-		SENSOR_LOG_ERROR("write failed for prox value invalid\n");
-	else
-	{
-		data->ps_status = value;
-		virtual_proximity_report_event(data);
-	}
-	*/
-	return count;
+
+    return count;
 }
 
 static ssize_t virtual_proximity_store_reset(struct device *dev,
